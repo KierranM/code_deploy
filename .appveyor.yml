@@ -1,9 +1,10 @@
 ---
 install:
-  - SET PATH=C:\Ruby23-x64\bin;%PATH%
+  - set PATH=C:\Ruby23-x64\bin;%PATH%
+  - set KITCHEN_YAML=.kitchen.windows.yml
   - gem install bundler --no-document
   - bundle install
 build: off
 test_script:
-  - KITCHEN_YAML=.kitchen.windows.yml bundle exec kitchen test
+  - bundle exec kitchen test
 deploy: off
