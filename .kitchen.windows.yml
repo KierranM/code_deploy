@@ -1,0 +1,14 @@
+---
+driver:
+  name: local
+
+provisioner:
+  name: chef_solo
+
+suites:
+  - name: install
+    run_list:
+      - recipe[code_deploy::install_agent]
+
+verifier:
+  name: pester

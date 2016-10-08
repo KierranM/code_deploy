@@ -61,42 +61,61 @@ def package_name
   'codedeploy-agent'
 end
 
+def installer_file
+  if windows?
+    'codedeploy-agent.msi'
+  else
+    'install'
+  end
+end
+
 def installer_url
-  new_resource.installer_url || "https://#{bucket}.s3.amazonaws.com/latest/install"
+  new_resource.installer_url || "https://#{bucket}.s3.amazonaws.com/latest/#{installer_file}"
 end
 
 def version_url
   new_resource.version_url || "https://#{bucket}.s3.amazonaws.com/latest/VERSION"
 end
 
-def installer_path
-  "#{Chef::Config[:file_cache_path]}/code_deploy_installer"
+def windows?
+  node[:platform_family] == 'windows'
 end
 
-def install_ruby
+def installer_path
+  "#{Chef::Config[:file_cache_path]}/code_deploy/#{installer_file}"
+end
+
+def ruby_package
   case node['platform_family']
   when 'debian'
-    package 'ruby2.0'
+    'ruby2.0'
   when 'rhel'
-    package 'ruby'
+    'ruby'
+  else
+    Chef::Application.fatal!("#{node['platform_family']} not supported")
   end
 end
 
 def install_code_deploy_agent
-  install_ruby
+  if windows?
+    windows_package installer_url
+  else
+    package ruby_package
 
-  proxy_arg = "--proxy #{new_resource.http_proxy}" unless new_resource.http_proxy.nil?
+    directory ::File.dirname(installer_path)
 
-  install_command = [installer_path, proxy_arg, 'auto'].compact.join(' ')
+    remote_file installer_path do
+      source installer_url
+      mode '0755' unless windows?
+      not_if { up_to_date }
+    end
 
-  remote_file installer_path do
-    source installer_url
-    mode '0755'
-    not_if { up_to_date }
-  end
+    proxy_arg = "--proxy #{new_resource.http_proxy}" unless new_resource.http_proxy.nil?
 
-  execute install_command do
-    not_if { up_to_date }
+    execute 'Install CodeDeploy agent' do
+      command [installer_path, proxy_arg, 'auto'].compact.join(' ')
+      not_if { up_to_date }
+    end
   end
 end
 
@@ -121,6 +140,10 @@ action :uninstall do
   when 'debian'
     dpkg_package 'codedeploy-agent' do
       action :purge
+    end
+  when 'windows'
+    windows_package installer_url do
+      action :uninstall
     end
   else
     package package_name do
