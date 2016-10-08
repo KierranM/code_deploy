@@ -2,6 +2,9 @@
 driver:
   name: local
 
+platforms:
+  - name: local
+
 provisioner:
   name: chef_solo
 
