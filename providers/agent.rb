@@ -98,6 +98,10 @@ def install_code_deploy_agent
   execute install_command do
     not_if { up_to_date }
   end
+
+  file '/etc/cron.d/codedeploy-agent-update' do
+    action :delete
+  end
 end
 
 action :install do
